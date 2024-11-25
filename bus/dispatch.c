@@ -234,7 +234,10 @@ bus_dispatch (DBusConnection *connection,
    * until we can.
    */
   while (!bus_connection_preallocate_oom_error (connection))
-    _dbus_wait_for_memory ();
+    {
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "bus_connection_preallocate_oom_error");
+      _dbus_wait_for_memory ();
+    }
 
   /* Ref connection in case we disconnect it at some point in here */
   dbus_connection_ref (connection);
@@ -293,6 +296,8 @@ bus_dispatch (DBusConnection *connection,
   if (!_dbus_message_remove_unknown_fields (message) ||
       !dbus_message_set_container_instance (message, NULL))
     {
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                       "!_dbus_message_remove_unknown_fields");
       BUS_SET_OOM (&error);
       goto out;
     }
@@ -325,6 +330,8 @@ bus_dispatch (DBusConnection *connection,
                                   DBUS_INTERFACE_LOCAL,
                                   "Disconnected"))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "dbus_message_is_signal close %s.", bus_connection_get_loginfo (connection));
           bus_connection_disconnected (connection);
           goto out;
         }
@@ -338,6 +345,8 @@ bus_dispatch (DBusConnection *connection,
            * non-signals with NULL destination, or their replies (which in
            * practice are UnknownMethod errors)
            */
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "Received non-signal message with NULL destination; ");
           result = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
           goto out;
         }
@@ -347,6 +356,8 @@ bus_dispatch (DBusConnection *connection,
   transaction = bus_transaction_new (context);
   if (transaction == NULL)
     {
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                       "Out of memory, closing connection.");
       BUS_SET_OOM (&error);
       goto out;
     }
@@ -359,6 +370,8 @@ bus_dispatch (DBusConnection *connection,
 
       if (!dbus_message_set_sender (message, sender))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "!dbus_message_set_sender");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -370,6 +383,8 @@ bus_dispatch (DBusConnection *connection,
        * don't want the message to have no sender at all. */
       if (!dbus_message_set_sender (message, ":not.active.yet"))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "!dbus_message_set_sender, monitor");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -387,6 +402,8 @@ bus_dispatch (DBusConnection *connection,
     {
       if (!bus_transaction_capture (transaction, connection, NULL, message))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "!bus_transaction_capture");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -395,24 +412,32 @@ bus_dispatch (DBusConnection *connection,
                                               connection, NULL, NULL, message,
                                               NULL, &error))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "bus_context_check_security_policy");
           _dbus_verbose ("Security policy rejected message\n");
           goto out;
         }
 
       _dbus_verbose ("Giving message to %s\n", DBUS_SERVICE_DBUS);
       if (!bus_driver_handle_message (connection, transaction, message, &error))
+        bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                         "bus_driver_handle_message() failed: %s", error.name);
         goto out;
     }
   else if (!bus_connection_is_active (connection)) /* clients must talk to bus driver first */
     {
       if (!bus_transaction_capture (transaction, connection, NULL, message))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "bus_transaction_capture0");
           BUS_SET_OOM (&error);
           goto out;
         }
 
       _dbus_verbose ("Received message from non-registered client. Disconnecting.\n");
       dbus_connection_close (connection);
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                       "Received message from non-registered client; closing connection.");
       goto out;
     }
   else if (service_name != NULL) /* route to named service */
@@ -435,6 +460,8 @@ bus_dispatch (DBusConnection *connection,
           if (!bus_transaction_capture (transaction, connection, NULL,
                                         message))
             {
+              bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                               "!bus_transaction_capture1");
               BUS_SET_OOM (&error);
               goto out;
             }
@@ -451,9 +478,14 @@ bus_dispatch (DBusConnection *connection,
             {
               _DBUS_ASSERT_ERROR_IS_SET (&error);
               _dbus_verbose ("bus_activation_activate_service() failed: %s\n", error.name);
+              bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                               "bus_activation_activate_service() failed: %s", error.name);
               goto out;
             }
 
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "Service \"%s\" does not exist, but is requested to be auto-started",
+                           service_name);
           goto out;
         }
       else if (service == NULL)
@@ -461,10 +493,14 @@ bus_dispatch (DBusConnection *connection,
           if (!bus_transaction_capture (transaction, connection,
                                         NULL, message))
             {
+              bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                               "!bus_transaction_capture2.");
               BUS_SET_OOM (&error);
               goto out;
             }
 
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Name \"%s\" does not exist",
+                           service_name);
           dbus_set_error (&error,
                           DBUS_ERROR_NAME_HAS_NO_OWNER,
                           "Name \"%s\" does not exist",
@@ -479,6 +515,8 @@ bus_dispatch (DBusConnection *connection,
           if (!bus_transaction_capture (transaction, connection,
                                         addressed_recipient, message))
             {
+              bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                               "bus_transaction_capture3");
               BUS_SET_OOM (&error);
               goto out;
             }
@@ -488,6 +526,8 @@ bus_dispatch (DBusConnection *connection,
     {
       if (!bus_transaction_capture (transaction, connection, NULL, message))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                           "!bus_transaction_capture4");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -498,6 +538,8 @@ bus_dispatch (DBusConnection *connection,
    * match rules.
    */
   if (!bus_dispatch_matches (transaction, connection, addressed_recipient, message, &error))
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                     "bus_dispatch_matches() failed: %s", error.name);
     goto out;
 
  out:

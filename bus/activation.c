@@ -1309,6 +1309,7 @@ bus_activation_send_pending_auto_activation_messages (BusActivation  *activation
               if (!bus_transaction_send_error_reply (transaction, entry->connection,
                                                      &error, entry->activation_message))
                 {
+                  _dbus_verbose ("!bus_transaction_send_error_reply");
                   bus_connection_send_oom_error (entry->connection,
                                                  entry->activation_message);
                 }
