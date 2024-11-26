@@ -907,7 +907,7 @@ bus_client_policy_check_can_send (BusClientPolicy *policy,
       
       if (rule->type != BUS_POLICY_RULE_SEND)
         {
-          _dbus_verbose ("  (policy) skipping non-send rule\n");
+          //_dbus_verbose ("  (policy) skipping non-send rule\n");
           continue;
         }
 
@@ -971,7 +971,7 @@ bus_client_policy_check_can_send (BusClientPolicy *policy,
                strcmp (dbus_message_get_interface (message),
                        rule->d.send.interface) != 0))
             {
-              _dbus_verbose ("  (policy) skipping rule for different interface\n");
+              //_dbus_verbose ("  (policy) skipping rule for different interface\n");
               continue;
             }
         }
@@ -1057,8 +1057,8 @@ bus_client_policy_check_can_send (BusClientPolicy *policy,
 
               if (!bus_service_owner_in_queue (service, receiver))
                 {
-                  _dbus_verbose ("  (policy) skipping rule because receiver isn't primary or queued owner of name %s\n",
-                                 rule->d.send.destination);
+                  // _dbus_verbose ("  (policy) skipping rule because receiver isn't primary or queued owner of name %s\n",
+                  //                rule->d.send.destination);
                   continue;
                 }
             }
@@ -1165,7 +1165,7 @@ bus_client_policy_check_can_receive (BusClientPolicy *policy,
       
       if (rule->type != BUS_POLICY_RULE_RECEIVE)
         {
-          _dbus_verbose ("  (policy) skipping non-receive rule\n");
+          //_dbus_verbose ("  (policy) skipping non-receive rule\n");
           continue;
         }
 
@@ -1173,7 +1173,7 @@ bus_client_policy_check_can_receive (BusClientPolicy *policy,
         {
           if (dbus_message_get_type (message) != rule->d.receive.message_type)
             {
-              _dbus_verbose ("  (policy) skipping rule for different message type\n");
+              //_dbus_verbose ("  (policy) skipping rule for different message type\n");
               continue;
             }
         }
@@ -1247,7 +1247,7 @@ bus_client_policy_check_can_receive (BusClientPolicy *policy,
                strcmp (dbus_message_get_interface (message),
                        rule->d.receive.interface) != 0))
             {
-              _dbus_verbose ("  (policy) skipping rule for different interface\n");
+              // _dbus_verbose ("  (policy) skipping rule for different interface\n");
               continue;
             }
         }      
