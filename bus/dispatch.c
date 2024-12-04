@@ -478,8 +478,6 @@ bus_dispatch (DBusConnection *connection,
             {
               _DBUS_ASSERT_ERROR_IS_SET (&error);
               _dbus_verbose ("bus_activation_activate_service() failed: %s\n", error.name);
-              bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                               "bus_activation_activate_service() failed: %s", error.name);
               goto out;
             }
 
