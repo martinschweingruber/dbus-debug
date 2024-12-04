@@ -1311,7 +1311,7 @@ bus_activation_send_pending_auto_activation_messages (BusActivation  *activation
                 {
                   bus_context_log (activation->context,
                     DBUS_SYSTEM_LOG_WARNING,
-                    "!bus_transaction_send_error_reply"
+                    "OOM_trigger !bus_transaction_send_error_reply"
                     "service: %s: %s",
                     error.name, error.message);
                   bus_connection_send_oom_error (entry->connection,

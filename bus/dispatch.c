@@ -110,6 +110,8 @@ send_one_message (DBusConnection *connection,
 
   if (!bus_transaction_send (transaction, sender, connection, message))
     {
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                      "OOM_trigger send_one_message->!bus_transaction_send");
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -166,6 +168,8 @@ bus_dispatch_matches (BusTransaction *transaction,
       if (!bus_transaction_send (transaction, sender, addressed_recipient,
                                  message))
         {
+          bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+                "OOM_trigger bus_dispatch_matches->!bus_transaction_send");
           BUS_SET_OOM (error);
           return FALSE;
         }
@@ -181,6 +185,8 @@ bus_dispatch_matches (BusTransaction *transaction,
                                       sender, addressed_recipient, message,
                                       &recipients))
     {
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
+            "OOM_trigger bus_dispatch_matches->!bus_matchmaker_get_recipients");
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -235,7 +241,7 @@ bus_dispatch (DBusConnection *connection,
    */
   while (!bus_connection_preallocate_oom_error (connection))
     {
-      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "bus_connection_preallocate_oom_error");
+      bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "OOM_trigger bus_connection_preallocate_oom_error");
       _dbus_wait_for_memory ();
     }
 
@@ -297,7 +303,7 @@ bus_dispatch (DBusConnection *connection,
       !dbus_message_set_container_instance (message, NULL))
     {
       bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                       "!_dbus_message_remove_unknown_fields");
+                       "OOM_trigger !_dbus_message_remove_unknown_fields");
       BUS_SET_OOM (&error);
       goto out;
     }
@@ -357,7 +363,7 @@ bus_dispatch (DBusConnection *connection,
   if (transaction == NULL)
     {
       bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                       "Out of memory, closing connection.");
+                       "OOM_trigger Out of memory, closing connection.");
       BUS_SET_OOM (&error);
       goto out;
     }
@@ -371,7 +377,7 @@ bus_dispatch (DBusConnection *connection,
       if (!dbus_message_set_sender (message, sender))
         {
           bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                           "!dbus_message_set_sender");
+                           "OOM_trigger !dbus_message_set_sender");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -384,7 +390,7 @@ bus_dispatch (DBusConnection *connection,
       if (!dbus_message_set_sender (message, ":not.active.yet"))
         {
           bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                           "!dbus_message_set_sender, monitor");
+                           "OOM_trigger !dbus_message_set_sender, monitor");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -403,7 +409,7 @@ bus_dispatch (DBusConnection *connection,
       if (!bus_transaction_capture (transaction, connection, NULL, message))
         {
           bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                           "!bus_transaction_capture");
+                           "OOM_trigger !bus_transaction_capture");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -429,7 +435,7 @@ bus_dispatch (DBusConnection *connection,
       if (!bus_transaction_capture (transaction, connection, NULL, message))
         {
           bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                           "bus_transaction_capture0");
+                           "OOM_trigger bus_transaction_capture0");
           BUS_SET_OOM (&error);
           goto out;
         }
@@ -461,7 +467,7 @@ bus_dispatch (DBusConnection *connection,
                                         message))
             {
               bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                               "!bus_transaction_capture1");
+                               "OOM_trigger !bus_transaction_capture1");
               BUS_SET_OOM (&error);
               goto out;
             }
@@ -492,7 +498,7 @@ bus_dispatch (DBusConnection *connection,
                                         NULL, message))
             {
               bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                               "!bus_transaction_capture2.");
+                               "OOM_trigger !bus_transaction_capture2.");
               BUS_SET_OOM (&error);
               goto out;
             }
@@ -514,7 +520,7 @@ bus_dispatch (DBusConnection *connection,
                                         addressed_recipient, message))
             {
               bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                               "bus_transaction_capture3");
+                               "OOM_trigger bus_transaction_capture3");
               BUS_SET_OOM (&error);
               goto out;
             }
@@ -525,7 +531,7 @@ bus_dispatch (DBusConnection *connection,
       if (!bus_transaction_capture (transaction, connection, NULL, message))
         {
           bus_context_log (context, DBUS_SYSTEM_LOG_WARNING,
-                           "!bus_transaction_capture4");
+                           "OOM_trigger !bus_transaction_capture4");
           BUS_SET_OOM (&error);
           goto out;
         }
