@@ -396,6 +396,46 @@ bus_dispatch (DBusConnection *connection,
         }
     }
 
+  // may send triggered error here
+  if (dbus_message_get_type(message) == DBUS_MESSAGE_TYPE_METHOD_RETURN) {
+      DBusMessageIter iter;
+
+      if (dbus_message_iter_init(message, &iter)) {
+          if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_VARIANT) {
+              DBusMessageIter variant_iter;
+              dbus_message_iter_recurse(&iter, &variant_iter);
+
+              if (dbus_message_iter_get_arg_type(&variant_iter) == DBUS_TYPE_UINT32) {
+                  uint32_t value;
+                  dbus_message_iter_get_basic(&variant_iter, &value);
+
+                  if (value == 3221225472) {
+                      const char *path = dbus_message_get_path(message);
+                      const char *interface = dbus_message_get_interface(message);
+                      const char *member = dbus_message_get_member(message);
+                      const char *sender = dbus_message_get_sender(message);
+                      const char *destination = dbus_message_get_destination(message);
+
+                      bus_context_log(
+                          context,
+                          DBUS_SYSTEM_LOG_INFO,
+                          "Special return value detected: %u\n"
+                          "Sender: %s, Destination: %s, Path: %s, Interface: %s, Member: %s",
+                          value,
+                          sender ? sender : "(unknown)",
+                          destination ? destination : "(unknown)",
+                          path ? path : "(unknown)",
+                          interface ? interface : "(unknown)",
+                          member ? member : "(unknown)"
+                      );
+                      BUS_SET_OOM (&error);
+                      goto out;
+                  }
+              }
+          }
+      }
+  }
+
   /* We need to refetch the service name here, because
    * dbus_message_set_sender can cause the header to be
    * reallocated, and thus the service_name pointer will become
