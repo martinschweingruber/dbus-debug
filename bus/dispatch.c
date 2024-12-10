@@ -396,6 +396,42 @@ bus_dispatch (DBusConnection *connection,
         }
     }
 
+  // Look for specific method calls with path "/drivex/17"
+  if (dbus_message_get_type(message) == DBUS_MESSAGE_TYPE_METHOD_CALL) {
+      const char *path = dbus_message_get_path(message);
+      const char *interface = dbus_message_get_interface(message);
+      const char *member = dbus_message_get_member(message);
+      const char *sender = dbus_message_get_sender(message);
+      const char *destination = dbus_message_get_destination(message);
+
+      if (path && strcmp(path, "/com/buhler/can/co/drivex/17") == 0 &&
+          interface && strcmp(interface, "org.freedesktop.DBus.Properties") == 0 &&
+          member && strcmp(member, "Get") == 0) {
+
+          static int counter;
+          counter++;
+
+          if( counter >= 10 ) {
+            bus_context_log(
+                context,
+                DBUS_SYSTEM_LOG_INFO,
+                "Detected method call for path '/drivex/17'\n"
+                "Sender: %s, Destination: %s, Path: %s, Interface: %s, Member: %s",
+                sender ? sender : "(unknown)",
+                destination ? destination : "(unknown)",
+                path,
+                interface,
+                member
+            );
+
+            counter = 0;
+            BUS_SET_OOM (&error);
+            goto out;
+          }
+      }
+  }
+
+
   // may send triggered error here
   if (dbus_message_get_type(message) == DBUS_MESSAGE_TYPE_METHOD_RETURN) {
       DBusMessageIter iter;
@@ -409,7 +445,7 @@ bus_dispatch (DBusConnection *connection,
                   uint32_t value;
                   dbus_message_iter_get_basic(&variant_iter, &value);
 
-                  if (value == 3221225472) {
+                  if (value == 1234) {
                       const char *path = dbus_message_get_path(message);
                       const char *interface = dbus_message_get_interface(message);
                       const char *member = dbus_message_get_member(message);
