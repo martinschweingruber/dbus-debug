@@ -212,8 +212,10 @@ bus_connection_disconnected (DBusConnection *connection)
   d = BUS_CONNECTION_DATA (connection);
   _dbus_assert (d != NULL);
 
-  _dbus_verbose ("%s disconnected, dropping all service ownership and releasing\n",
-                 d->name ? d->name : "(inactive)");
+  bus_context_log(d->connections->context, DBUS_SYSTEM_LOG_INFO,
+                  "%s disconnected, dropping all service ownership and releasing",
+                  d->name ? d->name : "(inactive)");
+
 
   /* Delete our match rules */
   if (d->n_match_rules > 0)
@@ -462,23 +464,32 @@ bus_connections_new (BusContext *context)
 {
   BusConnections *connections;
 
-  if (!dbus_connection_allocate_data_slot (&connection_data_slot))
+  if (!dbus_connection_allocate_data_slot (&connection_data_slot)) {
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Failed to allocate connection data slot.");
     goto failed_0;
+  }
 
   connections = dbus_new0 (BusConnections, 1);
-  if (connections == NULL)
+  if (connections == NULL) {
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Failed to allocate memory for BusConnections.");
     goto failed_1;
+  }
+
 
   connections->completed_by_user = _dbus_hash_table_new (DBUS_HASH_UINTPTR,
                                                          NULL, NULL);
-  if (connections->completed_by_user == NULL)
+  if (connections->completed_by_user == NULL) {
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Failed to create completed_by_user hash table.");
     goto failed_2;
+  }
 
   connections->expire_timeout = _dbus_timeout_new (100, /* irrelevant */
                                                    expire_incomplete_timeout,
                                                    connections, NULL);
-  if (connections->expire_timeout == NULL)
+  if (connections->expire_timeout == NULL) {
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Failed to create expire_timeout.");
     goto failed_3;
+  }
 
   _dbus_timeout_disable (connections->expire_timeout);
 
@@ -486,16 +497,21 @@ bus_connections_new (BusContext *context)
                                                       bus_context_get_reply_timeout (context),
                                                       bus_pending_reply_expired,
                                                       connections);
-  if (connections->pending_replies == NULL)
+  if (connections->pending_replies == NULL) {
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Failed to create pending_replies list.");
     goto failed_4;
-  
+  }
+
   if (!_dbus_loop_add_timeout (bus_context_get_loop (context),
-                               connections->expire_timeout))
+                               connections->expire_timeout)) {
+    bus_context_log (context, DBUS_SYSTEM_LOG_WARNING, "Failed to add expire_timeout to loop.");
     goto failed_5;
-  
+  }
+
   connections->refcount = 1;
   connections->context = context;
-  
+
+  bus_context_log (context, DBUS_SYSTEM_LOG_INFO, "BusConnections successfully initialized.");
   return connections;
 
  failed_5:
@@ -515,6 +531,8 @@ bus_connections_new (BusContext *context)
 BusConnections *
 bus_connections_ref (BusConnections *connections)
 {
+
+  bus_context_log(connections->context, DBUS_SYSTEM_LOG_INFO, "bus_connections_ref() BusConnections reference count incremented.");
   _dbus_assert (connections->refcount > 0);
   connections->refcount += 1;
 
@@ -524,6 +542,7 @@ bus_connections_ref (BusConnections *connections)
 void
 bus_connections_unref (BusConnections *connections)
 {
+  bus_context_log(connections->context, DBUS_SYSTEM_LOG_INFO, "bus_connections_unref() BusConnections reference count decremented.");
   _dbus_assert (connections->refcount > 0);
   connections->refcount -= 1;
   if (connections->refcount == 0)

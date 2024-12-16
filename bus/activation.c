@@ -900,6 +900,10 @@ bus_activation_reload (BusActivation     *activation,
   char          *dir;
   DBusError local_error = DBUS_ERROR_INIT;
 
+  bus_context_log (activation->context,
+                   DBUS_SYSTEM_LOG_INFO, "Reloading activation with new address='%s'",
+                   activation->server_address);
+
   if (activation->server_address != NULL)
     dbus_free (activation->server_address);
   if (!_dbus_string_copy_data (address, &activation->server_address))
@@ -1048,6 +1052,9 @@ bus_activation_new (BusContext        *context,
 BusActivation *
 bus_activation_ref (BusActivation *activation)
 {
+  bus_context_log (activation->context,
+                   DBUS_SYSTEM_LOG_INFO, "bus_activation_ref() Referencing activation for service name='%s'",
+                   activation->server_address);
   _dbus_assert (activation->refcount > 0);
 
   activation->refcount += 1;
@@ -1058,6 +1065,10 @@ bus_activation_ref (BusActivation *activation)
 void
 bus_activation_unref (BusActivation *activation)
 {
+
+  bus_context_log (activation->context,
+                   DBUS_SYSTEM_LOG_INFO, "bus_activation_unref() Unreferencing activation for service name='%s'",
+                   activation->server_address);
   _dbus_assert (activation->refcount > 0);
 
   activation->refcount -= 1;
@@ -1844,6 +1855,12 @@ bus_activation_activate_service (BusActivation  *activation,
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
 
   limit = bus_context_get_max_pending_activations (activation->context);
+
+  bus_context_log (activation->context,
+                   DBUS_SYSTEM_LOG_INFO, "bus_activation_activate_service() Activating service name='%s' requested by '%s' (%s)",
+                   service_name,
+                   bus_connection_get_name (connection),
+                   bus_connection_get_loginfo (connection));
 
   if (activation->n_pending_activations >= limit)
     {
