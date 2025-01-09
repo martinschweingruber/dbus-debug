@@ -772,12 +772,14 @@ _dbus_read_uuid_file_without_creating (const DBusString *filename,
   
   if (!_dbus_string_init (&contents))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _DBUS_SET_OOM (error);
       return FALSE;
     }
 
   if (!_dbus_string_init (&decoded))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _dbus_string_free (&contents);
       _DBUS_SET_OOM (error);
       return FALSE;
@@ -800,6 +802,7 @@ _dbus_read_uuid_file_without_creating (const DBusString *filename,
 
   if (!_dbus_string_hex_decode (&contents, 0, &end, &decoded, 0))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _DBUS_SET_OOM (error);
       goto error;
     }
@@ -855,18 +858,21 @@ _dbus_write_uuid_file (const DBusString *filename,
 
   if (!_dbus_string_init (&encoded))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _DBUS_SET_OOM (error);
       return FALSE;
     }
   
   if (!_dbus_uuid_encode (uuid, &encoded))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _DBUS_SET_OOM (error);
       goto error;
     }
   
   if (!_dbus_string_append_byte (&encoded, '\n'))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _DBUS_SET_OOM (error);
       goto error;
     }
@@ -955,6 +961,7 @@ _dbus_get_local_machine_uuid_encoded (DBusString *uuid_str,
   
   if (!_DBUS_LOCK (machine_uuid))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       _DBUS_SET_OOM (error);
       return FALSE;
     }
@@ -970,6 +977,7 @@ _dbus_get_local_machine_uuid_encoded (DBusString *uuid_str,
       if (!_dbus_uuid_encode (&machine_uuid, uuid_str))
         {
           ok = FALSE;
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           _DBUS_SET_OOM (error);
         }
     }
@@ -1160,3 +1168,88 @@ _dbus_test_oom_handling (const char             *description,
 #endif /* DBUS_ENABLE_EMBEDDED_TESTS */
 
 /** @} */
+
+/**
+ * Prints a warning message to stderr
+ * if the user has enabled verbose mode.
+ * This is the real function implementation,
+ * use _dbus_debug() macro in code.
+ *
+ * @param format printf-style format string.
+ */
+void
+_dbus_debug_real (
+#ifdef DBUS_CPP_SUPPORTS_VARIABLE_MACRO_ARGUMENTS
+                    const char *file,
+                    const int line,
+                    const char *function,
+#endif
+                    const char *format,
+                    ...)
+{
+  va_list args;
+  static dbus_bool_t need_pid = TRUE;
+  int len;
+  long sec, usec;
+
+#ifndef DBUS_USE_OUTPUT_DEBUG_STRING
+  /* Print out pid before the line */
+  if (need_pid)
+    {
+      _dbus_print_thread ();
+    }
+  _dbus_get_real_time (&sec, &usec);
+  fprintf (stderr, "%ld.%06ld ", sec, usec);
+#endif
+
+  /* Only print pid again if the next line is a new line */
+  len = strlen (format);
+  if (format[len-1] == '\n')
+    need_pid = TRUE;
+  else
+    need_pid = FALSE;
+
+  va_start (args, format);
+
+#ifdef DBUS_USE_OUTPUT_DEBUG_STRING
+  {
+    DBusString out = _DBUS_STRING_INIT_INVALID;
+    const char *message = NULL;
+
+    if (!_dbus_string_init (&out))
+      goto out;
+
+    if (!_dbus_string_append (&out, module_name))
+      goto out;
+
+#ifdef DBUS_CPP_SUPPORTS_VARIABLE_MACRO_ARGUMENTS
+    if (!_dbus_string_append_printf (&out, "[%s(%d):%s] ", _dbus_file_path_extract_elements_from_tail (file, 2), line, function))
+      goto out;
+#endif
+    if (!_dbus_string_append_printf_valist (&out, format, args))
+      goto out;
+    message = _dbus_string_get_const_data (&out);
+out:
+    if (message == NULL)
+      {
+        OutputDebugStringA ("Out of memory while formatting verbose message: '''");
+        OutputDebugStringA (format);
+        OutputDebugStringA ("'''");
+      }
+    else
+      {
+        OutputDebugStringA (message);
+      }
+    _dbus_string_free (&out);
+  }
+#else
+#ifdef DBUS_CPP_SUPPORTS_VARIABLE_MACRO_ARGUMENTS
+  fprintf (stderr, "[%s(%d):%s] ",_dbus_file_path_extract_elements_from_tail(file,2),line,function);
+#endif
+
+  vfprintf (stderr, format, args);
+  fflush (stderr);
+#endif
+
+  va_end (args);
+}

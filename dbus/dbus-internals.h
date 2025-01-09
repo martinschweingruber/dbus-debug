@@ -129,6 +129,22 @@ void _dbus_verbose_raw (const char *s);
 #  define _dbus_is_verbose() FALSE 
 #endif /* !DBUS_ENABLE_VERBOSE_MODE */
 
+#if defined(__GNUC__) || defined(_MSC_VER)
+#define DBUS_CPP_SUPPORTS_VARIABLE_MACRO_ARGUMENTS
+#endif
+
+#ifdef DBUS_CPP_SUPPORTS_VARIABLE_MACRO_ARGUMENTS
+DBUS_PRIVATE_EXPORT
+void _dbus_debug_real       (const char *file, const int line, const char *function,
+                               const char *format,...) _DBUS_GNUC_PRINTF (4, 5);
+#  define _dbus_debug(fmt,...) _dbus_debug_real( __FILE__,__LINE__,_DBUS_FUNCTION_NAME,fmt, ## __VA_ARGS__)
+#else
+DBUS_PRIVATE_EXPORT
+void _dbus_debug_real       (const char *format,
+                               ...) _DBUS_GNUC_PRINTF (1, 2);
+#  define _dbus_debug _dbus_debug_real
+#endif
+
 DBUS_PRIVATE_EXPORT
 void _dbus_trace_ref (const char *obj_name,
                       void       *obj,

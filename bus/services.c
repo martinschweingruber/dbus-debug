@@ -262,6 +262,7 @@ bus_registry_ensure (BusRegistry               *registry,
   service = _dbus_mem_pool_alloc (registry->service_pool);
   if (service == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return NULL;
     }
@@ -269,15 +270,16 @@ bus_registry_ensure (BusRegistry               *registry,
   service->registry = registry;  
   service->refcount = 1;
 
-  _dbus_verbose ("copying string %p '%s' to service->name\n",
+  _dbus_debug ("copying string %p '%s' to service->name\n",
                  service_name, _dbus_string_get_const_data (service_name));
   if (!_dbus_string_copy_data (service_name, &service->name))
     {
       _dbus_mem_pool_dealloc (registry->service_pool, service);
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return NULL;
     }
-  _dbus_verbose ("copied string %p '%s' to '%s'\n",
+  _dbus_debug ("copied string %p '%s' to '%s'\n",
                  service_name, _dbus_string_get_const_data (service_name),
                  service->name);
 
@@ -309,6 +311,7 @@ bus_registry_ensure (BusRegistry               *registry,
                                        service))
     {
       /* The add_owner gets reverted on transaction cancel */
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return NULL;
     }
@@ -403,7 +406,7 @@ bus_registry_acquire_service (BusRegistry      *registry,
                       "Requested bus name \"%s\" is not valid",
                       _dbus_string_get_const_data (service_name));
       
-      _dbus_verbose ("Attempt to acquire invalid service name\n");
+      _dbus_debug ("Attempt to acquire invalid service name\n");
       
       goto out;
     }
@@ -415,7 +418,7 @@ bus_registry_acquire_service (BusRegistry      *registry,
                       "Cannot acquire a service starting with ':' such as \"%s\"",
                       _dbus_string_get_const_data (service_name));
       
-      _dbus_verbose ("Attempt to acquire invalid base service name \"%s\"",
+      _dbus_debug ("Attempt to acquire invalid base service name \"%s\"",
                      _dbus_string_get_const_data (service_name));
       
       goto out;
@@ -606,8 +609,10 @@ bus_registry_acquire_service (BusRegistry      *registry,
   retval = bus_activation_send_pending_auto_activation_messages (activation,
 								 service,
 								 transaction);
-  if (!retval)
+  if (!retval){
+    _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
     BUS_SET_OOM (error);
+  }
   
  out:
   return retval;
@@ -633,7 +638,7 @@ bus_registry_release_service (BusRegistry      *registry,
                       "Given bus name \"%s\" is not valid",
                       _dbus_string_get_const_data (service_name));
 
-      _dbus_verbose ("Attempt to release invalid service name\n");
+      _dbus_debug ("Attempt to release invalid service name\n");
 
       goto out;
     }
@@ -645,7 +650,7 @@ bus_registry_release_service (BusRegistry      *registry,
                       "Cannot release a service starting with ':' such as \"%s\"",
                       _dbus_string_get_const_data (service_name));
 
-      _dbus_verbose ("Attempt to release invalid base service name \"%s\"",
+      _dbus_debug ("Attempt to release invalid base service name \"%s\"",
                      _dbus_string_get_const_data (service_name));
 
       goto out;
@@ -658,7 +663,7 @@ bus_registry_release_service (BusRegistry      *registry,
                       "Cannot release the %s service because it is owned by the bus",
                      DBUS_SERVICE_DBUS);
 
-      _dbus_verbose ("Attempt to release service name \"%s\"",
+      _dbus_debug ("Attempt to release service name \"%s\"",
                      DBUS_SERVICE_DBUS);
 
       goto out;
@@ -833,6 +838,8 @@ bus_service_add_owner (BusService     *service,
   BusOwner *bus_owner;
   DBusList *bus_owner_link;
   
+  _dbus_debug("Adding owner for service %s with connection %p\n", service->name, connection);
+
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
   
  /* Send service acquired message first, OOM will result
@@ -851,6 +858,7 @@ bus_service_add_owner (BusService     *service,
       bus_owner = bus_owner_new (service, connection, flags);
       if (bus_owner == NULL)
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           return FALSE;
         }
@@ -862,6 +870,7 @@ bus_service_add_owner (BusService     *service,
                                   bus_owner))
             {
               bus_owner_unref (bus_owner);
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               return FALSE;
             }
@@ -873,6 +882,7 @@ bus_service_add_owner (BusService     *service,
                                          bus_owner))
             {
               bus_owner_unref (bus_owner);
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               return FALSE;
             }
@@ -904,6 +914,7 @@ bus_service_add_owner (BusService     *service,
                                             bus_owner))
     {
       bus_service_unlink_owner (service, bus_owner);
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -1102,6 +1113,7 @@ bus_service_swap_owner (BusService     *service,
 
   if (!add_restore_ownership_to_transaction (transaction, service, primary_owner))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -1131,6 +1143,7 @@ bus_service_remove_owner (BusService     *service,
   /* We send out notifications before we do any work we
    * might have to undo if the notification-sending failed
    */
+  _dbus_debug("bus_service_remove_owner() Service name: %s\n", service->name);
   
   /* Send service lost message */
   primary_owner = bus_service_get_primary_owner (service);
@@ -1196,6 +1209,7 @@ bus_service_remove_owner (BusService     *service,
 
   if (!add_restore_ownership_to_transaction (transaction, service, primary_owner))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }

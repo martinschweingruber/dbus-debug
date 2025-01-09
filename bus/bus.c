@@ -230,11 +230,13 @@ setup_server (BusContext *context,
               char      **auth_mechanisms,
               DBusError  *error)
 {
+  bus_context_log(context, DBUS_SYSTEM_LOG_INFO, "Setting up server with auth mechanisms");
   if (!bus_context_setup_server (context, server, error))
     return FALSE;
 
   if (!dbus_server_set_auth_mechanisms (server, (const char**) auth_mechanisms))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -257,6 +259,7 @@ bus_context_setup_server (BusContext                 *context,
                                            bd, free_server_data))
     {
       dbus_free (bd);
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -270,6 +273,7 @@ bus_context_setup_server (BusContext                 *context,
                                         server,
                                         NULL))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -280,6 +284,7 @@ bus_context_setup_server (BusContext                 *context,
                                           NULL,
                                           server, NULL))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -307,6 +312,8 @@ process_config_first_time_only (BusContext       *context,
   int len;
   dbus_bool_t retval;
   DBusLogFlags log_flags = DBUS_LOG_FLAGS_STDERR;
+
+  bus_context_log(context, DBUS_SYSTEM_LOG_INFO, "Processing configuration for the first time");
 
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
 
@@ -547,6 +554,7 @@ process_config_first_time_only (BusContext       *context,
   return retval;
 
  oom:
+  _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
   BUS_SET_OOM (error);
   dbus_free_string_array (auth_mechanisms);
   return FALSE;
@@ -573,6 +581,8 @@ process_config_every_time (BusContext      *context,
 
   dbus_bool_t retval;
 
+  bus_context_log(context, DBUS_SYSTEM_LOG_INFO, "Processing configuration every time");
+
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
 
   addr = NULL;
@@ -580,6 +590,7 @@ process_config_every_time (BusContext      *context,
 
   if (!_dbus_string_init (&full_address))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -613,6 +624,7 @@ process_config_every_time (BusContext      *context,
       addr = dbus_server_get_address (link->data);
       if (addr == NULL)
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -621,6 +633,7 @@ process_config_every_time (BusContext      *context,
         {
           if (!_dbus_string_append (&full_address, ";"))
             {
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               goto failed;
             }
@@ -628,6 +641,7 @@ process_config_every_time (BusContext      *context,
 
       if (!_dbus_string_append (&full_address, addr))
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -643,6 +657,7 @@ process_config_every_time (BusContext      *context,
 
   if (!_dbus_string_copy_data (&full_address, &context->address))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -656,6 +671,7 @@ process_config_every_time (BusContext      *context,
   s = _dbus_strdup(servicehelper);
   if (s == NULL && servicehelper != NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -739,10 +755,13 @@ process_config_postinit (BusContext      *context,
   DBusHashTable *service_context_table;
   DBusList *watched_dirs = NULL;
 
+  bus_context_log(context, DBUS_SYSTEM_LOG_INFO, "Post-initialization processing of configuration");
+
   service_context_table = bus_config_parser_steal_service_context_table (parser);
   if (!bus_registry_set_service_context_table (context->registry,
 					       service_context_table))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -754,6 +773,7 @@ process_config_postinit (BusContext      *context,
    */
   if (!bus_config_parser_get_watched_dirs (parser, &watched_dirs))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -788,6 +808,7 @@ bus_context_new (const DBusString *config_file,
 
   if (!dbus_server_allocate_data_slot (&server_data_slot))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return NULL;
     }
@@ -795,6 +816,7 @@ bus_context_new (const DBusString *config_file,
   context = dbus_new0 (BusContext, 1);
   if (context == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -805,6 +827,7 @@ bus_context_new (const DBusString *config_file,
 
   if (!_dbus_string_copy_data (config_file, &context->config_file))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -812,6 +835,7 @@ bus_context_new (const DBusString *config_file,
   context->loop = _dbus_loop_new ();
   if (context->loop == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -821,6 +845,7 @@ bus_context_new (const DBusString *config_file,
   context->registry = bus_registry_new (context);
   if (context->registry == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -863,6 +888,7 @@ bus_context_new (const DBusString *config_file,
       _dbus_assert (a != NULL);
       if (!_dbus_string_init (&addr))
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -871,6 +897,7 @@ bus_context_new (const DBusString *config_file,
           !_dbus_string_append (&addr, "\n"))
         {
           _dbus_string_free (&addr);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -908,6 +935,7 @@ bus_context_new (const DBusString *config_file,
   context->connections = bus_connections_new (context);
   if (context->connections == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -915,6 +943,7 @@ bus_context_new (const DBusString *config_file,
   context->matchmaker = bus_matchmaker_new ();
   if (context->matchmaker == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -923,6 +952,7 @@ bus_context_new (const DBusString *config_file,
 
   if (context->containers == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -1091,11 +1121,14 @@ bus_context_send_activatable_services_changed (BusContext *context,
   BusTransaction *transaction;
   dbus_bool_t retval = FALSE;
 
+  bus_context_log(context, DBUS_SYSTEM_LOG_INFO, "Sending ActivatableServicesChanged signal");
+
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
 
   transaction = bus_transaction_new (context);
   if (transaction == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -1106,18 +1139,21 @@ bus_context_send_activatable_services_changed (BusContext *context,
 
   if (message == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto out;
     }
 
   if (!dbus_message_set_sender (message, DBUS_SERVICE_DBUS))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto out;
     }
 
   if (!bus_transaction_capture (transaction, NULL, NULL, message))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto out;
     }

@@ -290,6 +290,7 @@ update_desktop_file_entry (BusActivation       *activation,
 
   if (!_dbus_string_init (&file_path))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -297,6 +298,7 @@ update_desktop_file_entry (BusActivation       *activation,
   if (!_dbus_string_append (&file_path, s_dir->dir_c) ||
       !_dbus_concat_dir_and_file (&file_path, filename))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto out;
     }
@@ -413,6 +415,7 @@ update_desktop_file_entry (BusActivation       *activation,
 
       if (!_dbus_string_init (&expected_name))
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
@@ -421,13 +424,14 @@ update_desktop_file_entry (BusActivation       *activation,
           !_dbus_string_append (&expected_name, ".service"))
         {
           _dbus_string_free (&expected_name);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
 
       if (_dbus_string_equal (&expected_name, filename))
         {
-          _dbus_verbose ("Name of \"%s\" is as expected\n",
+          _dbus_debug ("Name of \"%s\" is as expected\n",
                          _dbus_string_get_const_data (&file_path));
         }
       else if (s_dir->flags & BUS_SERVICE_DIR_FLAGS_STRICT_NAMING)
@@ -462,7 +466,7 @@ update_desktop_file_entry (BusActivation       *activation,
            * https://lintian.debian.org/tags/dbus-session-service-wrong-name.html
            * is a bit shorter.
            * https://bugs.freedesktop.org/show_bug.cgi?id=99873 */
-          _dbus_verbose ("Name of \"%s\" should canonically be \"%s\"\n",
+          _dbus_debug ("Name of \"%s\" should canonically be \"%s\"\n",
                          _dbus_string_get_const_data (&file_path),
                          _dbus_string_get_const_data (&expected_name));
         }
@@ -483,6 +487,7 @@ update_desktop_file_entry (BusActivation       *activation,
       entry = dbus_new0 (BusActivationEntry, 1);
       if (entry == NULL)
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
@@ -505,12 +510,14 @@ update_desktop_file_entry (BusActivation       *activation,
       entry->filename = _dbus_strdup (_dbus_string_get_const_data (filename));
       if (!entry->filename)
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
 
       if (!_dbus_hash_table_insert_string (activation->entries, entry->name, bus_activation_entry_ref (entry)))
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
@@ -519,11 +526,12 @@ update_desktop_file_entry (BusActivation       *activation,
         {
           /* Revert the insertion in the entries table */
           _dbus_hash_table_remove_string (activation->entries, entry->name);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
 
-      _dbus_verbose ("Added \"%s\" to list of services\n", entry->name);
+      _dbus_debug ("Added \"%s\" to list of services\n", entry->name);
     }
   else /* Just update the entry */
     {
@@ -532,7 +540,7 @@ update_desktop_file_entry (BusActivation       *activation,
 
       if (_dbus_hash_table_lookup_string (activation->entries, name))
         {
-          _dbus_verbose ("The new service name \"%s\" of service file \"%s\" is already in cache, ignoring\n",
+          _dbus_debug ("The new service name \"%s\" of service file \"%s\" is already in cache, ignoring\n",
                          name, _dbus_string_get_const_data (&file_path));
           dbus_set_error (error, DBUS_ERROR_FAILED,
                           "The new service name \"%s\" of service file \"%s\" is already in cache, ignoring\n",
@@ -564,6 +572,7 @@ update_desktop_file_entry (BusActivation       *activation,
       if (!_dbus_hash_table_insert_string (activation->entries,
                                            entry->name, bus_activation_entry_ref(entry)))
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           /* Also remove path to entries hash since we want this in sync with
            * the entries hash table */
@@ -611,6 +620,7 @@ check_service_file (BusActivation       *activation,
 
   if (!_dbus_string_init (&file_path))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -618,6 +628,7 @@ check_service_file (BusActivation       *activation,
   if (!_dbus_string_append (&file_path, entry->s_dir->dir_c) ||
       !_dbus_concat_dir_and_file (&file_path, &filename))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       retval = FALSE;
       goto out;
@@ -625,7 +636,7 @@ check_service_file (BusActivation       *activation,
 
   if (!_dbus_stat (&file_path, &stat_buf, NULL))
     {
-      _dbus_verbose ("****** Can't stat file \"%s\", removing from cache\n",
+      _dbus_debug ("****** Can't stat file \"%s\", removing from cache\n",
                      _dbus_string_get_const_data (&file_path));
 
       _dbus_hash_table_remove_string (activation->entries, entry->name);
@@ -647,7 +658,7 @@ check_service_file (BusActivation       *activation,
           desktop_file = bus_desktop_file_load (&file_path, &tmp_error);
           if (desktop_file == NULL)
             {
-              _dbus_verbose ("Could not load %s: %s\n",
+              _dbus_debug ("Could not load %s: %s\n",
                              _dbus_string_get_const_data (&file_path),
                              tmp_error.message);
               if (dbus_error_has_name (&tmp_error, DBUS_ERROR_NO_MEMORY))
@@ -717,12 +728,14 @@ update_directory (BusActivation       *activation,
 
   if (!_dbus_string_init (&filename))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
 
   if (!_dbus_string_init (&full_path))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       _dbus_string_free (&filename);
       return FALSE;
@@ -735,7 +748,7 @@ update_directory (BusActivation       *activation,
   iter = _dbus_directory_open (&dir, error);
   if (iter == NULL)
     {
-      _dbus_verbose ("Failed to open directory %s: %s\n",
+      _dbus_debug ("Failed to open directory %s: %s\n",
                      s_dir->dir_c,
                      error ? error->message : "unknown");
       goto out;
@@ -751,7 +764,7 @@ update_directory (BusActivation       *activation,
 
       if (!_dbus_string_ends_with_c_str (&filename, ".service"))
         {
-          _dbus_verbose ("Skipping non-.service file '%s'\n",
+          _dbus_debug ("Skipping non-.service file '%s'\n",
                          _dbus_string_get_const_data (&filename));
           continue;
         }
@@ -768,6 +781,7 @@ update_directory (BusActivation       *activation,
       if (!_dbus_string_append (&full_path, s_dir->dir_c) ||
           !_dbus_concat_dir_and_file (&full_path, &filename))
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto out;
         }
@@ -776,7 +790,7 @@ update_directory (BusActivation       *activation,
       desktop_file = bus_desktop_file_load (&full_path, &tmp_error);
       if (desktop_file == NULL)
         {
-          _dbus_verbose ("Could not load %s: %s\n",
+          _dbus_debug ("Could not load %s: %s\n",
                          _dbus_string_get_const_data (&full_path),
                          tmp_error.message);
 
@@ -798,7 +812,7 @@ update_directory (BusActivation       *activation,
           bus_desktop_file_free (desktop_file);
           desktop_file = NULL;
 
-          _dbus_verbose ("Could not add %s to activation entry list: %s\n",
+          _dbus_debug ("Could not add %s to activation entry list: %s\n",
                          _dbus_string_get_const_data (&full_path), tmp_error.message);
 
           if (dbus_error_has_name (&tmp_error, DBUS_ERROR_NO_MEMORY))
@@ -908,6 +922,7 @@ bus_activation_reload (BusActivation     *activation,
     dbus_free (activation->server_address);
   if (!_dbus_string_copy_data (address, &activation->server_address))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -918,6 +933,7 @@ bus_activation_reload (BusActivation     *activation,
                                              (DBusFreeFunction)bus_activation_entry_unref);
   if (activation->entries == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -936,6 +952,7 @@ bus_activation_reload (BusActivation     *activation,
       dir = _dbus_strdup (config->path);
       if (!dir)
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -944,6 +961,7 @@ bus_activation_reload (BusActivation     *activation,
       if (!s_dir)
         {
           dbus_free (dir);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -958,6 +976,7 @@ bus_activation_reload (BusActivation     *activation,
       if (!s_dir->entries)
         {
           bus_service_directory_unref (s_dir);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -965,6 +984,7 @@ bus_activation_reload (BusActivation     *activation,
       if (!_dbus_list_append (&activation->directories, s_dir))
         {
           bus_service_directory_unref (s_dir);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto failed;
         }
@@ -1004,6 +1024,7 @@ bus_activation_new (BusContext        *context,
   activation = dbus_new0 (BusActivation, 1);
   if (activation == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return NULL;
     }
@@ -1022,6 +1043,7 @@ bus_activation_new (BusContext        *context,
 
   if (activation->pending_activations == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -1032,12 +1054,14 @@ bus_activation_new (BusContext        *context,
 
   if (activation->environment == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
 
   if (!populate_environment (activation))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto failed;
     }
@@ -1148,7 +1172,7 @@ restore_pending (void *data)
   _dbus_assert (d->pending_activation != NULL);
   _dbus_assert (d->hash_entry != NULL);
 
-  _dbus_verbose ("Restoring pending activation for service %s, has timeout = %d\n",
+  _dbus_debug ("Restoring pending activation for service %s, has timeout = %d\n",
                  d->pending_activation->service_name,
                  d->pending_activation->timeout_added);
 
@@ -1198,7 +1222,7 @@ add_restore_pending_to_transaction (BusTransaction       *transaction,
       return FALSE;
     }
 
-  _dbus_verbose ("Saved pending activation to be restored if the transaction fails\n");
+  _dbus_debug ("Saved pending activation to be restored if the transaction fails\n");
 
   return TRUE;
 }
@@ -1242,6 +1266,7 @@ bus_activation_service_created (BusActivation  *activation,
               message = dbus_message_new_method_return (entry->activation_message);
               if (!message)
                 {
+                  _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
                   BUS_SET_OOM (error);
                   goto error;
                 }
@@ -1253,6 +1278,7 @@ bus_activation_service_created (BusActivation  *activation,
                                              DBUS_TYPE_INVALID))
                 {
                   dbus_message_unref (message);
+                  _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
                   BUS_SET_OOM (error);
                   goto error;
                 }
@@ -1260,6 +1286,7 @@ bus_activation_service_created (BusActivation  *activation,
               if (!bus_transaction_send_from_driver (transaction, entry->connection, message))
                 {
                   dbus_message_unref (message);
+                  _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
                   BUS_SET_OOM (error);
                   goto error;
                 }
@@ -1340,7 +1367,7 @@ bus_activation_send_pending_auto_activation_messages (BusActivation  *activation
 
   if (!add_restore_pending_to_transaction (transaction, pending_activation))
     {
-      _dbus_verbose ("Could not add cancel hook to transaction to revert removing pending activation\n");
+      _dbus_debug ("Could not add cancel hook to transaction to revert removing pending activation\n");
       goto error;
     }
 
@@ -1630,7 +1657,7 @@ cancel_pending (void *data)
 {
   BusPendingActivation *pending_activation = data;
 
-  _dbus_verbose ("Canceling pending activation of %s\n",
+  _dbus_debug ("Canceling pending activation of %s\n",
                  pending_activation->service_name);
 
 #ifdef ENABLE_TRADITIONAL_ACTIVATION
@@ -1661,7 +1688,7 @@ add_cancel_pending_to_transaction (BusTransaction       *transaction,
 
   bus_pending_activation_ref (pending_activation);
 
-  _dbus_verbose ("Saved pending activation to be canceled if the transaction fails\n");
+  _dbus_debug ("Saved pending activation to be canceled if the transaction fails\n");
 
   return TRUE;
 }
@@ -1773,6 +1800,7 @@ out:
     {
       dbus_free (hash_key);
       dbus_free (hash_value);
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
     }
 
@@ -1898,7 +1926,7 @@ bus_activation_activate_service (BusActivation  *activation,
         error))
     {
       _DBUS_ASSERT_ERROR_IS_SET (error);
-      _dbus_verbose ("activation not authorized: %s: %s\n",
+      _dbus_debug ("activation not authorized: %s: %s\n",
           error != NULL ? error->name : "(error ignored)",
           error != NULL ? error->message : "(error ignored)");
       return FALSE;
@@ -1915,13 +1943,14 @@ bus_activation_activate_service (BusActivation  *activation,
         {
           dbus_uint32_t result;
 
-          _dbus_verbose ("Service \"%s\" is already active\n", service_name);
+          _dbus_debug ("Service \"%s\" is already active\n", service_name);
 
           message = dbus_message_new_method_return (activation_message);
 
           if (!message)
             {
-              _dbus_verbose ("No memory to create reply to activate message\n");
+              _dbus_debug ("No memory to create reply to activate message\n");
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               return FALSE;
             }
@@ -1932,7 +1961,8 @@ bus_activation_activate_service (BusActivation  *activation,
                                          DBUS_TYPE_UINT32, &result,
                                          DBUS_TYPE_INVALID))
             {
-              _dbus_verbose ("No memory to set args of reply to activate message\n");
+              _dbus_debug ("No memory to set args of reply to activate message\n");
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               dbus_message_unref (message);
               return FALSE;
@@ -1942,7 +1972,8 @@ bus_activation_activate_service (BusActivation  *activation,
           dbus_message_unref (message);
           if (!retval)
             {
-              _dbus_verbose ("Failed to send reply\n");
+              _dbus_debug ("Failed to send reply\n");
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
             }
 
@@ -1953,7 +1984,8 @@ bus_activation_activate_service (BusActivation  *activation,
   pending_activation_entry = dbus_new0 (BusPendingActivationEntry, 1);
   if (!pending_activation_entry)
     {
-      _dbus_verbose ("Failed to create pending activation entry\n");
+      _dbus_debug ("Failed to create pending activation entry\n");
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -1973,8 +2005,9 @@ bus_activation_activate_service (BusActivation  *activation,
     {
       if (!_dbus_list_append (&pending_activation->entries, pending_activation_entry))
         {
-          _dbus_verbose ("Failed to append a new entry to pending activation\n");
+          _dbus_debug ("Failed to append a new entry to pending activation\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_entry_free (pending_activation_entry);
           return FALSE;
@@ -1988,8 +2021,9 @@ bus_activation_activate_service (BusActivation  *activation,
       pending_activation = dbus_new0 (BusPendingActivation, 1);
       if (!pending_activation)
         {
-          _dbus_verbose ("Failed to create pending activation\n");
+          _dbus_debug ("Failed to create pending activation\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_entry_free (pending_activation_entry);
           return FALSE;
@@ -2001,8 +2035,9 @@ bus_activation_activate_service (BusActivation  *activation,
       pending_activation->service_name = _dbus_strdup (service_name);
       if (!pending_activation->service_name)
         {
-          _dbus_verbose ("Failed to copy service name for pending activation\n");
+          _dbus_debug ("Failed to copy service name for pending activation\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_unref (pending_activation);
           bus_pending_activation_entry_free (pending_activation_entry);
@@ -2014,7 +2049,8 @@ bus_activation_activate_service (BusActivation  *activation,
           pending_activation->exec = _dbus_strdup (entry->exec);
           if (!pending_activation->exec)
             {
-              _dbus_verbose ("Failed to copy service exec for pending activation\n");
+              _dbus_debug ("Failed to copy service exec for pending activation\n");
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               bus_pending_activation_unref (pending_activation);
               bus_pending_activation_entry_free (pending_activation_entry);
@@ -2027,7 +2063,8 @@ bus_activation_activate_service (BusActivation  *activation,
           pending_activation->systemd_service = _dbus_strdup (entry->systemd_service);
           if (!pending_activation->systemd_service)
             {
-              _dbus_verbose ("Failed to copy systemd service for pending activation\n");
+              _dbus_debug ("Failed to copy systemd service for pending activation\n");
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               bus_pending_activation_unref (pending_activation);
               bus_pending_activation_entry_free (pending_activation_entry);
@@ -2042,8 +2079,9 @@ bus_activation_activate_service (BusActivation  *activation,
                            NULL);
       if (!pending_activation->timeout)
         {
-          _dbus_verbose ("Failed to create timeout for pending activation\n");
+          _dbus_debug ("Failed to create timeout for pending activation\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_unref (pending_activation);
           bus_pending_activation_entry_free (pending_activation_entry);
@@ -2053,8 +2091,9 @@ bus_activation_activate_service (BusActivation  *activation,
       if (!_dbus_loop_add_timeout (bus_context_get_loop (activation->context),
                                    pending_activation->timeout))
         {
-          _dbus_verbose ("Failed to add timeout for pending activation\n");
+          _dbus_debug ("Failed to add timeout for pending activation\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_unref (pending_activation);
           bus_pending_activation_entry_free (pending_activation_entry);
@@ -2065,8 +2104,9 @@ bus_activation_activate_service (BusActivation  *activation,
 
       if (!_dbus_list_append (&pending_activation->entries, pending_activation_entry))
         {
-          _dbus_verbose ("Failed to add entry to just-created pending activation\n");
+          _dbus_debug ("Failed to add entry to just-created pending activation\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_unref (pending_activation);
           bus_pending_activation_entry_free (pending_activation_entry);
@@ -2080,8 +2120,9 @@ bus_activation_activate_service (BusActivation  *activation,
                                            pending_activation->service_name,
                                            pending_activation))
         {
-          _dbus_verbose ("Failed to put pending activation in hash table\n");
+          _dbus_debug ("Failed to put pending activation in hash table\n");
 
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           bus_pending_activation_unref (pending_activation);
           return FALSE;
@@ -2090,7 +2131,8 @@ bus_activation_activate_service (BusActivation  *activation,
 
   if (!add_cancel_pending_to_transaction (transaction, pending_activation))
     {
-      _dbus_verbose ("Failed to add pending activation cancel hook to transaction\n");
+      _dbus_debug ("Failed to add pending activation cancel hook to transaction\n");
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto cancel_pending_activation;
     }
@@ -2129,7 +2171,8 @@ bus_activation_activate_service (BusActivation  *activation,
                                              "ActivationRequest");
           if (!message)
             {
-              _dbus_verbose ("No memory to create activation message\n");
+              _dbus_debug ("No memory to create activation message\n");
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               goto cancel_pending_activation;
             }
@@ -2140,8 +2183,9 @@ bus_activation_activate_service (BusActivation  *activation,
                                          DBUS_TYPE_STRING, &entry->systemd_service,
                                          DBUS_TYPE_INVALID))
             {
-              _dbus_verbose ("No memory to set args of activation message\n");
+              _dbus_debug ("No memory to set args of activation message\n");
               dbus_message_unref (message);
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               goto cancel_pending_activation;
             }
@@ -2150,8 +2194,9 @@ bus_activation_activate_service (BusActivation  *activation,
           activation_transaction = bus_transaction_new (activation->context);
           if (activation_transaction == NULL)
             {
-              _dbus_verbose ("No memory to create activation transaction\n");
+              _dbus_debug ("No memory to create activation transaction\n");
               dbus_message_unref (message);
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               goto cancel_pending_activation;
             }
@@ -2171,6 +2216,7 @@ bus_activation_activate_service (BusActivation  *activation,
                                         NULL, systemd, message))
             {
               dbus_message_unref (message);
+              _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
               BUS_SET_OOM (error);
               goto cancel_pending_activation;
             }
@@ -2209,7 +2255,7 @@ bus_activation_activate_service (BusActivation  *activation,
                                service_name,
                                entry->systemd_service);
               _DBUS_ASSERT_ERROR_IS_SET (error);
-              _dbus_verbose ("failed to send activation message: %s\n", error->name);
+              _dbus_debug ("failed to send activation message: %s\n", error->name);
               bus_transaction_cancel_and_free (activation_transaction);
               goto cancel_pending_activation;
             }
@@ -2231,6 +2277,7 @@ bus_activation_activate_service (BusActivation  *activation,
   /* use command as system and session different */
   if (!_dbus_string_init (&command))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       goto cancel_pending_activation;
     }
@@ -2251,18 +2298,21 @@ bus_activation_activate_service (BusActivation  *activation,
       if (!_dbus_string_append (&command, servicehelper))
         {
           _dbus_string_free (&command);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto cancel_pending_activation;
         }
       if (!_dbus_string_append (&command, " "))
         {
           _dbus_string_free (&command);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto cancel_pending_activation;
         }
       if (!_dbus_string_append (&command, service_name))
         {
           _dbus_string_free (&command);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto cancel_pending_activation;
         }
@@ -2273,6 +2323,7 @@ bus_activation_activate_service (BusActivation  *activation,
       if (!_dbus_string_append (&command, entry->exec))
         {
           _dbus_string_free (&command);
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           goto cancel_pending_activation;
         }
@@ -2281,7 +2332,7 @@ bus_activation_activate_service (BusActivation  *activation,
   /* convert command into arguments */
   if (!_dbus_shell_parse_argv (_dbus_string_get_const_data (&command), &argc, &argv, error))
     {
-      _dbus_verbose ("Failed to parse command line: %s\n", entry->exec);
+      _dbus_debug ("Failed to parse command line: %s\n", entry->exec);
       _DBUS_ASSERT_ERROR_IS_SET (error);
       _dbus_string_free (&command);
       goto cancel_pending_activation;
@@ -2299,12 +2350,13 @@ bus_activation_activate_service (BusActivation  *activation,
 
   if (envp == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       dbus_free_string_array (argv);
       goto cancel_pending_activation;
     }
 
-  _dbus_verbose ("Spawning %s ...\n", argv[0]);
+  _dbus_debug ("Spawning %s ...\n", argv[0]);
   if (servicehelper != NULL)
     bus_context_log (activation->context,
                      DBUS_SYSTEM_LOG_INFO, "Activating service name='%s' requested by '%s' (%s) (using servicehelper)",
@@ -2337,7 +2389,7 @@ bus_activation_activate_service (BusActivation  *activation,
                                           activation,
                                           &tmp_error))
     {
-      _dbus_verbose ("Failed to spawn child\n");
+      _dbus_debug ("Failed to spawn child\n");
       bus_context_log (activation->context,
                        DBUS_SYSTEM_LOG_INFO, "Failed to activate service %s: %s",
                        service_name,
@@ -2366,8 +2418,9 @@ bus_activation_activate_service (BusActivation  *activation,
                                              pending_activation,
                                              NULL))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
-      _dbus_verbose ("Failed to set babysitter watch functions\n");
+      _dbus_debug ("Failed to set babysitter watch functions\n");
       goto cancel_pending_activation;
     }
 

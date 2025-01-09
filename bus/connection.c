@@ -170,7 +170,7 @@ adjust_connections_for_uid (BusConnections *connections,
 
   current_count = get_connections_for_uid (connections, uid);
 
-  _dbus_verbose ("Adjusting connection count for UID " DBUS_UID_FORMAT
+  _dbus_debug ("Adjusting connection count for UID " DBUS_UID_FORMAT
                  ": was %d adjustment %d making %d\n",
                  uid, current_count, adjustment, current_count + adjustment);
   
@@ -257,7 +257,7 @@ bus_connection_disconnected (DBusConnection *connection)
             }
           else
             {
-              _dbus_verbose ("Failed to remove service owner: %s %s\n",
+              _dbus_debug ("Failed to remove service owner: %s %s\n",
                              error.name, error.message);
               _dbus_assert_not_reached ("Removing service owner failed for non-memory-related reason");
             }
@@ -740,7 +740,7 @@ check_pending_fds_cb (DBusConnection *connection)
   n_pending_unix_fds_old = d->n_pending_unix_fds;
   n_pending_unix_fds_new = _dbus_connection_get_pending_fds_count (connection);
 
-  _dbus_verbose ("Pending fds count changed on connection %p: %d -> %d\n",
+  _dbus_debug ("Pending fds count changed on connection %p: %d -> %d\n",
                  connection, n_pending_unix_fds_old, n_pending_unix_fds_new);
 
   if (n_pending_unix_fds_old == 0 && n_pending_unix_fds_new > 0)
@@ -1019,14 +1019,14 @@ bus_connections_expire_incomplete (BusConnections *connections)
                   "(auth_timeout=%dms, elapsed: %.0fms)",
                   auth_timeout, elapsed);
 
-              _dbus_verbose ("Timing out authentication for connection %p\n", connection);
+              _dbus_debug ("Timing out authentication for connection %p\n", connection);
               dbus_connection_close (connection);
             }
           else
             {
               /* We can end the loop, since the connections are in oldest-first order */
               next_interval = ((double)auth_timeout) - elapsed;
-              _dbus_verbose ("Connection %p authentication expires in %d milliseconds\n",
+              _dbus_debug ("Connection %p authentication expires in %d milliseconds\n",
                              connection, next_interval);
           
               break;
@@ -1086,6 +1086,7 @@ bus_connection_get_unix_groups  (DBusConnection   *connection,
 
       if (*groups == NULL)
         {
+          _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
           BUS_SET_OOM (error);
           return FALSE;
         }
@@ -1100,13 +1101,13 @@ bus_connection_get_unix_groups  (DBusConnection   *connection,
     {
       if (!_dbus_unix_groups_from_uid (uid, groups, n_groups))
         {
-          _dbus_verbose ("Did not get any groups for UID %lu\n",
+          _dbus_debug ("Did not get any groups for UID %lu\n",
                          uid);
           return FALSE;
         }
       else
         {
-          _dbus_verbose ("Got %d groups for UID %lu\n",
+          _dbus_debug ("Got %d groups for UID %lu\n",
                          *n_groups, uid);
           return TRUE;
         }
@@ -1593,13 +1594,14 @@ bus_connection_complete (DBusConnection   *connection,
   
   if (!_dbus_string_copy_data (name, &d->name))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
 
   _dbus_assert (d->name != NULL);
   
-  _dbus_verbose ("Name %s assigned to %p\n", d->name, connection);
+  _dbus_debug ("Name %s assigned to %p\n", d->name, connection);
 
   d->policy = bus_context_create_client_policy (d->connections->context,
                                                 connection,
@@ -1612,7 +1614,7 @@ bus_connection_complete (DBusConnection   *connection,
 
   if (d->policy == NULL)
     {
-      _dbus_verbose ("Failed to create security policy for connection %p\n",
+      _dbus_debug ("Failed to create security policy for connection %p\n",
                      connection);
       _DBUS_ASSERT_ERROR_IS_SET (error);
       dbus_free (d->name);
@@ -1655,6 +1657,7 @@ bus_connection_complete (DBusConnection   *connection,
   
   return TRUE;
 fail:
+  _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
   BUS_SET_OOM (error);
   dbus_free (d->name);
   d->name = NULL;
@@ -1690,7 +1693,7 @@ bus_connections_reload_policy (BusConnections *connections,
                                                     error);
       if (d->policy == NULL)
         {
-          _dbus_verbose ("Failed to create security policy for connection %p\n",
+          _dbus_debug ("Failed to create security policy for connection %p\n",
                       connection);
           _DBUS_ASSERT_ERROR_IS_SET (error);
           return FALSE;
@@ -1835,7 +1838,7 @@ bus_pending_reply_expired (BusExpireList *list,
    * get more memory.
    */
 
-  _dbus_verbose ("Expiring pending reply %p, replier %p receiver %p serial %u\n",
+  _dbus_debug ("Expiring pending reply %p, replier %p receiver %p serial %u\n",
                  pending,
                  pending->will_send_reply,
                  pending->will_get_reply,
@@ -1870,7 +1873,7 @@ bus_connection_drop_pending_replies (BusConnections  *connections,
    */
   DBusList *link;
 
-  _dbus_verbose ("Dropping pending replies that involve connection %p\n",
+  _dbus_debug ("Dropping pending replies that involve connection %p\n",
                  connection);
   
   link = bus_expire_list_get_first_link (connections->pending_replies);
@@ -1887,7 +1890,7 @@ bus_connection_drop_pending_replies (BusConnections  *connections,
         {
           /* We don't need to track this pending reply anymore */
 
-          _dbus_verbose ("Dropping pending reply %p, replier %p receiver %p serial %u\n",
+          _dbus_debug ("Dropping pending reply %p, replier %p receiver %p serial %u\n",
                          pending,
                          pending->will_send_reply,
                          pending->will_get_reply,
@@ -1902,7 +1905,7 @@ bus_connection_drop_pending_replies (BusConnections  *connections,
           /* The reply isn't going to be sent, so set things
            * up so it will be expired right away
            */
-          _dbus_verbose ("Will expire pending reply %p, replier %p receiver %p serial %u\n",
+          _dbus_debug ("Will expire pending reply %p, replier %p receiver %p serial %u\n",
                          pending,
                          pending->will_send_reply,
                          pending->will_get_reply,
@@ -1931,7 +1934,7 @@ cancel_pending_reply (void *data)
 {
   CancelPendingReplyData *d = data;
 
-  _dbus_verbose ("d = %p\n", d);
+  _dbus_debug ("d = %p\n", d);
   
   if (!bus_expire_list_remove (d->connections->pending_replies,
                                &d->pending->expire_item))
@@ -2023,6 +2026,7 @@ bus_connections_expect_reply (BusConnections  *connections,
   pending = dbus_new0 (BusPendingReply, 1);
   if (pending == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -2040,6 +2044,7 @@ bus_connections_expect_reply (BusConnections  *connections,
   cprd = dbus_new0 (CancelPendingReplyData, 1);
   if (cprd == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       bus_pending_reply_free (pending);
       return FALSE;
@@ -2048,6 +2053,7 @@ bus_connections_expect_reply (BusConnections  *connections,
   if (!bus_expire_list_add (connections->pending_replies,
                             &pending->expire_item))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       dbus_free (cprd);
       bus_pending_reply_free (pending);
@@ -2059,6 +2065,7 @@ bus_connections_expect_reply (BusConnections  *connections,
                                         cprd,
                                         cancel_pending_reply_data_free))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       bus_expire_list_remove (connections->pending_replies, &pending->expire_item);
       dbus_free (cprd);
@@ -2168,6 +2175,7 @@ bus_connections_check_reply (BusConnections *connections,
   cprd = dbus_new0 (CheckPendingReplyData, 1);
   if (cprd == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -2177,6 +2185,7 @@ bus_connections_check_reply (BusConnections *connections,
                                         cprd,
                                         check_pending_reply_data_free))
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       dbus_free (cprd);
       return FALSE;
@@ -2702,7 +2711,7 @@ bus_transaction_send_error_reply (BusTransaction  *transaction,
   _dbus_assert (error != NULL);
   _DBUS_ASSERT_ERROR_IS_SET (error);
   
-  _dbus_verbose ("Sending error reply %s \"%s\"\n",
+  _dbus_debug ("Sending error reply %s \"%s\"\n",
                  error->name, error->message);
 
   reply = dbus_message_new_error (in_reply_to,
@@ -2896,6 +2905,7 @@ bus_connection_be_monitor (DBusConnection  *connection,
 
   if (link == NULL)
     {
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -2903,6 +2913,7 @@ bus_connection_be_monitor (DBusConnection  *connection,
   if (!bcd_add_monitor_rules (d, connection, rules))
     {
       _dbus_list_free_link (link);
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
@@ -2912,6 +2923,7 @@ bus_connection_be_monitor (DBusConnection  *connection,
     {
       bcd_drop_monitor_rules (d, connection);
       _dbus_list_free_link (link);
+      _dbus_debug("OOM from %s at line %d\n", __FILE__, __LINE__);
       BUS_SET_OOM (error);
       return FALSE;
     }
